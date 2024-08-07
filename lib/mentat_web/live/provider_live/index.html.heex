@@ -31,7 +31,12 @@
   </:action>
 </.table>
 
-<.modal :if={@live_action in [:new, :edit]} id="provider-modal" show on_cancel={JS.patch(~p"/providers")}>
+<.modal
+  :if={@live_action in [:new, :edit]}
+  id="provider-modal"
+  show
+  on_cancel={JS.patch(~p"/providers")}
+>
   <.live_component
     module={MentatWeb.ProviderLive.FormComponent}
     id={@provider.id || :new}
@@ -39,5 +44,6 @@
     action={@live_action}
     provider={@provider}
     patch={~p"/providers"}
+    current_user={@current_user}
   />
 </.modal>

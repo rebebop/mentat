@@ -68,6 +68,20 @@ defmodule MentatWeb.Router do
       on_mount: [{MentatWeb.UserAuth, :ensure_authenticated}] do
       live "/users/settings", UserSettingsLive, :edit
       live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
+
+      live "/providers", ProviderLive.Index, :index
+      live "/providers/new", ProviderLive.Index, :new
+      live "/providers/:id/edit", ProviderLive.Index, :edit
+
+      live "/providers/:id", ProviderLive.Show, :show
+      live "/providers/:id/show/edit", ProviderLive.Show, :edit
+
+      live "/activity_records", ActivityRecordLive.Index, :index
+      live "/activity_records/new", ActivityRecordLive.Index, :new
+      live "/activity_records/:id/edit", ActivityRecordLive.Index, :edit
+
+      live "/activity_records/:id", ActivityRecordLive.Show, :show
+      live "/activity_records/:id/show/edit", ActivityRecordLive.Show, :edit
     end
   end
 

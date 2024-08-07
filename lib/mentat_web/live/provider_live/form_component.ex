@@ -72,7 +72,11 @@ defmodule MentatWeb.ProviderLive.FormComponent do
   end
 
   defp save_provider(socket, :new, provider_params) do
-    case Integrations.create_provider(provider_params) do
+    case Integrations.create_provider(
+           Map.merge(provider_params, %{
+             "user_id" => socket.assigns.current_user.id
+           })
+         ) do
       {:ok, provider} ->
         notify_parent({:saved, provider})
 
