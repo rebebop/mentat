@@ -1,0 +1,22 @@
+services:
+  # mentat_app:
+  #   image: mentat:alpha
+  #   container_name: mentat
+  #   ports:
+  #     - 4000:4000
+  #   environment:
+  #     - DATABASE_URL=postgres://postgres:postgres@host.docker.internal/mentat_prod
+  #     - SECRET_KEY_BASE="dU0zc3oXh+j4MpqklnXEmoA/dbTdRLCiu4+xdL/GPGzIfCDHpn3V/7hDm+Ns+bD3"
+  #
+  mentat_postgres:
+    image: postgres:16
+    container_name: mentat_postgres
+    ports:
+      - 127.0.0.1:5432:5432
+    volumes:
+      - mentat_postgresdb:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+volumes:
+  mentat_postgresdb:
