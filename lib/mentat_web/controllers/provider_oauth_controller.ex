@@ -1,7 +1,5 @@
-defmodule MentatWeb.ProviderAuthController do
+defmodule MentatWeb.ProviderOAuthController do
   use MentatWeb, :controller
-
-  alias Assent.Config
 
   def request(conn, %{"provider" => provider_str}) do
     # TODO: make sure to do a string to atom fix here
@@ -58,10 +56,7 @@ defmodule MentatWeb.ProviderAuthController do
   end
 
   defp config!(provider) do
-    config =
-      Application.get_env(:mentat, :strategies)[provider] ||
-        raise "No provider configuration for #{provider}"
-
-    Config.put(config, :redirect_uri, "http://localhost:4000/auth/#{provider}/callback")
+    Application.get_env(:mentat, :strategies)[provider] ||
+      raise "No provider configuration for #{provider}"
   end
 end

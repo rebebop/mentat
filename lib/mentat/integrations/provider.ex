@@ -16,6 +16,7 @@ defmodule Mentat.Integrations.Provider do
     field :token, :string
     field :refresh_token, :string
     field :expires_at, :utc_datetime
+    field :provider_uid, :string
 
     belongs_to :user, User
 

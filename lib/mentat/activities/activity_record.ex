@@ -2,6 +2,9 @@ defmodule Mentat.Activities.ActivityRecord do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Mentat.Integrations.Provider
+  alias Mentat.Accounts.User
+
   @required_fields [:start_time, :end_time, :value, :measuring_scale, :user_id, :provider_id]
   @optional_fields [:tags, :details]
 

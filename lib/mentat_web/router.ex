@@ -64,8 +64,8 @@ defmodule MentatWeb.Router do
   scope "/", MentatWeb do
     pipe_through [:browser, :require_authenticated_user]
 
-    get "/auth/:provider", ProviderAuthController, :request
-    get "/auth/:provider/callback", ProviderAuthController, :callback
+    get "/oauth/:provider", ProviderOAuthController, :request
+    get "/oauth/:provider/callback", ProviderOAuthController, :callback
 
     live_session :require_authenticated_user,
       on_mount: [{MentatWeb.UserAuth, :ensure_authenticated}] do

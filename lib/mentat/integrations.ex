@@ -1,12 +1,22 @@
 defmodule Mentat.Integrations do
-  @moduledoc """
-  The Integrations context.
-  """
-
   import Ecto.Query, warn: false
   alias Mentat.Repo
 
   alias Mentat.Integrations.Provider
+
+  def find_provider_by_name(provider_name, user_id) do
+    Repo.get_by(Provider, user_id: user_id, name: provider_name)
+    |> case do
+      nil -> {:error, %Ecto.NoResultsError{}}
+      provider -> {:ok, provider}
+    end
+  end
+
+  def add_provider(attrs \\ %{}) do
+    %Provider{}
+    |> Provider.changeset(attrs)
+    |> Repo.insert()
+  end
 
   @doc """
   Returns the list of providers.

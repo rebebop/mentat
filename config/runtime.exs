@@ -115,3 +115,11 @@ if config_env() == :prod do
   #
   # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
 end
+
+config :mentat, :strategies,
+  fitbit: [
+    client_id: System.get_env("FITBIT_API_CLIENT_ID"),
+    client_secret: System.get_env("FITBIT_API_CLIENT_SECRET"),
+    redirect_uri: System.get_env("FITBIT_API_CLIENT_REDIRECT_URI"),
+    strategy: Mentat.Integrations.Fitbit.AuthStrategy
+  ]
