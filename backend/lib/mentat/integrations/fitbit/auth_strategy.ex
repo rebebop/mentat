@@ -21,10 +21,9 @@ defmodule Mentat.Integrations.Fitbit.AuthStrategy do
     {:ok,
      %{
        "sub" => user["id"],
-       "given_name" => user["first_name"],
-       "family_name" => user["last_name"],
-       "picture" => user["photo_200"],
-       "email" => user["email"]
+       "given_name" => user["firstName"],
+       "family_name" => user["lastName"],
+       "picture" => user["avatar"]
      }}
   end
 end

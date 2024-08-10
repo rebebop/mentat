@@ -18,6 +18,12 @@ defmodule Mentat.Integrations do
     |> Repo.insert()
   end
 
+  def update_provider(%Provider{} = provider, attrs) do
+    provider
+    |> Provider.changeset(attrs)
+    |> Repo.update()
+  end
+
   @doc """
   Returns the list of providers.
 
@@ -63,24 +69,6 @@ defmodule Mentat.Integrations do
     %Provider{}
     |> Provider.changeset(attrs)
     |> Repo.insert()
-  end
-
-  @doc """
-  Updates a provider.
-
-  ## Examples
-
-      iex> update_provider(provider, %{field: new_value})
-      {:ok, %Provider{}}
-
-      iex> update_provider(provider, %{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def update_provider(%Provider{} = provider, attrs) do
-    provider
-    |> Provider.changeset(attrs)
-    |> Repo.update()
   end
 
   @doc """

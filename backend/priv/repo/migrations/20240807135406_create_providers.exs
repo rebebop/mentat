@@ -5,8 +5,8 @@ defmodule Mentat.Repo.Migrations.CreateProviders do
     create table(:providers, primary_key: false) do
       add :id, :binary_id, primary_key: true
       add :name, :string, null: false
-      add :token, :string
-      add :refresh_token, :string
+      add :token, :text
+      add :refresh_token, :text
       add :expires_at, :utc_datetime
       add :label, :string
       add :status, :string
