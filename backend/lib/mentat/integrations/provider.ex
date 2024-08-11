@@ -5,7 +5,7 @@ defmodule Mentat.Integrations.Provider do
   alias Mentat.Accounts.User
 
   @required_fields [:name, :status, :user_id]
-  @optional_fields [:label, :token, :refresh_token, :expires_at]
+  @optional_fields [:label, :token, :refresh_token, :expires_at, :provider_uid, :token_type]
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -17,6 +17,7 @@ defmodule Mentat.Integrations.Provider do
     field :refresh_token, :string
     field :expires_at, :utc_datetime
     field :provider_uid, :string
+    field :token_type, :string
 
     belongs_to :user, User
 

@@ -1,28 +1,13 @@
 defmodule Mentat.Integrations do
   import Ecto.Query, warn: false
+
   alias Mentat.Repo
-
   alias Mentat.Integrations.Provider
+  alias Mentat.Integrations.Services
 
-  def find_provider_by_name(provider_name, user_id) do
-    Repo.get_by(Provider, user_id: user_id, name: provider_name)
-    |> case do
-      nil -> {:error, %Ecto.NoResultsError{}}
-      provider -> {:ok, provider}
-    end
-  end
+  defdelegate save_provider(provider_name, user_id, attrs \\ %{}), to: Services.Provider
 
-  def add_provider(attrs \\ %{}) do
-    %Provider{}
-    |> Provider.changeset(attrs)
-    |> Repo.insert()
-  end
-
-  def update_provider(%Provider{} = provider, attrs) do
-    provider
-    |> Provider.changeset(attrs)
-    |> Repo.update()
-  end
+  # TODO: refactor below
 
   @doc """
   Returns the list of providers.

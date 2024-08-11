@@ -1,4 +1,6 @@
 defmodule Mentat.Integrations.Fitbit.AuthStrategy do
+  alias Assent.Strategy.OAuth2
+  alias Mentat.Integrations
   use Assent.Strategy.OAuth2.Base
 
   @impl true
@@ -25,5 +27,22 @@ defmodule Mentat.Integrations.Fitbit.AuthStrategy do
        "family_name" => user["lastName"],
        "picture" => user["avatar"]
      }}
+  end
+
+  def api_request(user_id, method, url) do
+    with {:ok, provider} <-
+           Integrations.Selectors.Provider.find_provider_by_name(:fitbit, user_id) do
+      token = %{
+        "access_token" => provider.token,
+        "token_type" => provider.token_type
+      }
+
+      OAuth2.request(
+        default_config(%{}),
+        token,
+        method,
+        "/1/user/#{provider.provider_uid}/#{url}"
+      )
+    end
   end
 end

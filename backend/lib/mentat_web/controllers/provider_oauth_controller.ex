@@ -38,11 +38,15 @@ defmodule MentatWeb.ProviderOAuthController do
     |> config[:strategy].callback(params)
     |> case do
       {:ok, %{user: _user, token: oauth_response}} ->
-        setup_provider(
-          %{name: provider, user_id: conn.assigns.current_user.id},
-          oauth_response,
-          Integrations.find_provider_by_name(provider, conn.assigns.current_user.id)
-        )
+        Integrations.save_provider(provider, conn.assigns.current_user.id, %{
+          name: provider,
+          status: :enabled,
+          token: oauth_response["access_token"],
+          expires_at: DateTime.add(DateTime.utc_now(), oauth_response["expires_in"], :second),
+          refresh_token: oauth_response["refresh_token"],
+          provider_uid: oauth_response["user_id"],
+          token_type: oauth_response["token_type"]
+        })
 
         conn
         |> Phoenix.Controller.redirect(to: "/")
@@ -60,26 +64,5 @@ defmodule MentatWeb.ProviderOAuthController do
   defp config!(provider) do
     Application.get_env(:mentat, :strategies)[provider] ||
       raise "No provider configuration for #{provider}"
-  end
-
-  defp setup_provider(_provider_attrs, oauth_provider, {:ok, provider}) do
-    Integrations.update_provider(provider, %{
-      token: oauth_provider["access_token"],
-      expires_at: DateTime.add(DateTime.utc_now(), oauth_provider["expires_in"], :second),
-      refresh_token: oauth_provider["refresh_token"],
-      provider_uid: oauth_provider["user_id"]
-    })
-  end
-
-  defp setup_provider(provider_attrs, oauth_provider, {:error, %Ecto.NoResultsError{}}) do
-    Integrations.add_provider(%{
-      name: provider_attrs[:name],
-      status: :enabled,
-      user_id: provider_attrs[:user_id],
-      token: oauth_provider["access_token"],
-      expires_at: DateTime.add(DateTime.utc_now(), oauth_provider["expires_in"], :second),
-      refresh_token: oauth_provider["refresh_token"],
-      provider_uid: oauth_provider["user_id"]
-    })
   end
 end

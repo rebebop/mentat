@@ -11,6 +11,7 @@ defmodule Mentat.Repo.Migrations.CreateProviders do
       add :label, :string
       add :status, :string
       add :provider_uid, :string
+      add :token_type, :string
       add :user_id, references(:users, on_delete: :delete_all, type: :binary_id)
 
       timestamps(type: :utc_datetime)
