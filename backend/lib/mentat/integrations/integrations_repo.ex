@@ -1,6 +1,6 @@
 defmodule Mentat.Integrations.IntegrationsRepo do
   alias Mentat.Repo
-  alias Mentat.Integrations.Provider
+  alias Mentat.Integrations.Schemas.Provider
 
   def add_provider(attrs \\ %{}) do
     %Provider{}

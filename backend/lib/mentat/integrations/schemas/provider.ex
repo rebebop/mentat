@@ -1,4 +1,4 @@
-defmodule Mentat.Integrations.Provider do
+defmodule Mentat.Integrations.Schemas.Provider do
   use Ecto.Schema
   import Ecto.Changeset
 

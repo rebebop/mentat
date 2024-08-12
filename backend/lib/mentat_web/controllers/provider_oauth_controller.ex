@@ -29,24 +29,27 @@ defmodule MentatWeb.ProviderOAuthController do
 
   def callback(conn, params) do
     session_params = get_session(conn, :session_params)
-    provider = params["provider"] |> String.to_atom()
+    provider_name = params["provider"] |> String.to_atom()
 
-    config = config!(provider)
+    config = config!(provider_name)
 
     config
     |> Assent.Config.put(:session_params, session_params)
     |> config[:strategy].callback(params)
     |> case do
       {:ok, %{user: _user, token: oauth_response}} ->
-        Integrations.save_provider(provider, conn.assigns.current_user.id, %{
-          name: provider,
-          status: :enabled,
-          token: oauth_response["access_token"],
-          expires_at: DateTime.add(DateTime.utc_now(), oauth_response["expires_in"], :second),
-          refresh_token: oauth_response["refresh_token"],
-          provider_uid: oauth_response["user_id"],
-          token_type: oauth_response["token_type"]
-        })
+        {:ok, provider} =
+          Integrations.save_provider(provider_name, conn.assigns.current_user.id, %{
+            name: provider_name,
+            status: :enabled,
+            token: oauth_response["access_token"],
+            expires_at: DateTime.add(DateTime.utc_now(), oauth_response["expires_in"], :second),
+            refresh_token: oauth_response["refresh_token"],
+            provider_uid: oauth_response["user_id"],
+            token_type: oauth_response["token_type"]
+          })
+
+        Integrations.enable_provider(provider)
 
         conn
         |> Phoenix.Controller.redirect(to: "/")

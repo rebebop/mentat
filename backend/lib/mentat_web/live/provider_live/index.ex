@@ -2,7 +2,7 @@ defmodule MentatWeb.ProviderLive.Index do
   use MentatWeb, :live_view
 
   alias Mentat.Integrations
-  alias Mentat.Integrations.Provider
+  alias Mentat.Integrations.Schemas.Provider
 
   @impl true
   def mount(_params, _session, socket) do

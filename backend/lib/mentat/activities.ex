@@ -1,12 +1,14 @@
 defmodule Mentat.Activities do
-  @moduledoc """
-  The Activities context.
-  """
-
   import Ecto.Query, warn: false
   alias Mentat.Repo
 
   alias Mentat.Activities.ActivityRecord
+
+  def save_activity_record(user_id, attrs) do
+    %ActivityRecord{user_id: user_id}
+    |> ActivityRecord.changeset(attrs)
+    |> Repo.insert()
+  end
 
   @doc """
   Returns the list of activity_records.

@@ -2,10 +2,11 @@ defmodule Mentat.Integrations do
   import Ecto.Query, warn: false
 
   alias Mentat.Repo
-  alias Mentat.Integrations.Provider
+  alias Mentat.Integrations.Schemas.Provider
   alias Mentat.Integrations.Services
 
   defdelegate save_provider(provider_name, user_id, attrs \\ %{}), to: Services.Provider
+  defdelegate enable_provider(provider), to: Services.Provider
 
   # TODO: refactor below
 
@@ -50,6 +51,7 @@ defmodule Mentat.Integrations do
       {:error, %Ecto.Changeset{}}
 
   """
+
   def create_provider(attrs \\ %{}) do
     %Provider{}
     |> Provider.changeset(attrs)

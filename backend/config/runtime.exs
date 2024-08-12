@@ -121,5 +121,6 @@ config :mentat, :strategies,
     client_id: System.get_env("FITBIT_API_CLIENT_ID"),
     client_secret: System.get_env("FITBIT_API_CLIENT_SECRET"),
     redirect_uri: System.get_env("FITBIT_API_CLIENT_REDIRECT_URI"),
-    strategy: Mentat.Integrations.Fitbit.AuthStrategy
+    strategy: Mentat.Integrations.Fitbit.AuthStrategy,
+    sync_worker: Mentat.Integrations.Fitbit.SyncWorker
   ]
