@@ -14,6 +14,7 @@ defmodule Mentat.Application do
       {Phoenix.PubSub, name: Mentat.PubSub},
       # Start the Finch HTTP client for sending emails
       {Finch, name: Mentat.Finch},
+      {Oban, Application.fetch_env!(:mentat, Oban)},
       # Start a worker by calling: Mentat.Worker.start_link(arg)
       # {Mentat.Worker, arg},
       # Start to serve requests, typically the last entry

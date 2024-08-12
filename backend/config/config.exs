@@ -63,6 +63,11 @@ config :phoenix, :json_library, Jason
 
 config :assent, http_adapter: {Assent.HTTPAdapter.Finch, supervisor: Mentat.Finch}
 
+config :mentat, Oban,
+  engine: Oban.Engines.Basic,
+  queues: [provider_syncs: 5],
+  repo: Mentat.Repo
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"
