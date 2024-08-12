@@ -31,9 +31,10 @@ defmodule Mentat.Integrations.Fitbit.AuthStrategy do
 
   def api_request(user_id, method, url) do
     with {:ok, provider} <-
-           Integrations.Selectors.Provider.find_provider_by_name(:fitbit, user_id) do
+           Integrations.Selectors.Provider.find_provider_by_name(:fitbit, user_id),
+         {:ok, access_token} <- maybe_refresh_token(provider) do
       token = %{
-        "access_token" => provider.token,
+        "access_token" => access_token,
         "token_type" => provider.token_type
       }
 
@@ -44,5 +45,29 @@ defmodule Mentat.Integrations.Fitbit.AuthStrategy do
         "/1/user/#{provider.provider_uid}/#{url}"
       )
     end
+  end
+
+  def maybe_refresh_token(provider) do
+    if DateTime.compare(provider.expires_at, DateTime.utc_now()) == :lt do
+      {:ok, new_token} =
+        OAuth2.refresh_access_token(current_config(), %{
+          "refresh_token" => provider.refresh_token
+        })
+
+      Integrations.save_provider(provider.name, provider.user_id, %{
+        token: new_token["access_token"],
+        expires_at: DateTime.add(DateTime.utc_now(), new_token["expires_in"], :second),
+        refresh_token: new_token["refresh_token"]
+      })
+
+      {:ok, new_token["access_token"]}
+    else
+      {:ok, provider.token}
+    end
+  end
+
+  def current_config() do
+    default_config(%{})
+    |> Keyword.merge(Application.get_env(:mentat, :strategies)[:fitbit])
   end
 end
