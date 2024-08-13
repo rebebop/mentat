@@ -10,6 +10,40 @@ defmodule Mentat.Activities do
     |> Repo.insert()
   end
 
+  def get_activity_records_by_date_range(user_id, provider_id, measuring_scale, date_range) do
+    {start_date, end_date} = date_range
+
+    query =
+      from a in ActivityRecord,
+        where: a.user_id == ^user_id,
+        where: a.provider_id == ^provider_id,
+        where: a.measuring_scale == ^measuring_scale,
+        where: a.start_time >= ^start_date,
+        where: a.end_time <= ^end_date
+
+    Repo.all(query)
+  end
+
+  def get_activity_records_by_date_range(
+        user_id,
+        provider_id,
+        measuring_scale,
+        date_range,
+        :only_match_day
+      ) do
+    {start_date, end_date} = date_range
+
+    query =
+      from a in ActivityRecord,
+        where: a.user_id == ^user_id,
+        where: a.provider_id == ^provider_id,
+        where: a.measuring_scale == ^measuring_scale,
+        where: fragment("date_trunc('day', ?) >= ?", a.start_time, ^start_date),
+        where: fragment("date_trunc('day', ?) <= ?", a.end_time, ^end_date)
+
+    Repo.all(query)
+  end
+
   @doc """
   Returns the list of activity_records.
 
