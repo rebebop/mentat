@@ -29,7 +29,7 @@ defmodule Mentat.Integrations.Fitbit.AuthStrategy do
      }}
   end
 
-  def api_request(user_id, method, url) do
+  def api_request(url, user_id, method, version \\ 1) do
     with {:ok, provider} <-
            Integrations.Selectors.Provider.find_provider_by_name(:fitbit, user_id),
          {:ok, access_token} <- maybe_refresh_token(provider) do
@@ -42,7 +42,7 @@ defmodule Mentat.Integrations.Fitbit.AuthStrategy do
         default_config(%{}),
         token,
         method,
-        "/1/user/#{provider.provider_uid}/#{url}"
+        "/#{version}/user/#{provider.provider_uid}/#{url}"
       )
     end
   end

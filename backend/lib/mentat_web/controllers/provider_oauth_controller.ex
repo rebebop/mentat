@@ -1,12 +1,13 @@
 defmodule MentatWeb.ProviderOAuthController do
   alias Mentat.Integrations
+  alias Mentat.Integrations.Util
   use MentatWeb, :controller
 
   def request(conn, %{"provider" => provider_str}) do
     # TODO: make sure to do a string to atom fix here
     provider = String.to_atom(provider_str)
 
-    config = config!(provider)
+    config = Util.get_provider_config!(provider)
 
     config[:strategy].authorize_url(config)
     |> case do
@@ -31,7 +32,7 @@ defmodule MentatWeb.ProviderOAuthController do
     session_params = get_session(conn, :session_params)
     provider_name = params["provider"] |> String.to_atom()
 
-    config = config!(provider_name)
+    config = Util.get_provider_config!(provider_name)
 
     config
     |> Assent.Config.put(:session_params, session_params)
@@ -39,17 +40,13 @@ defmodule MentatWeb.ProviderOAuthController do
     |> case do
       {:ok, %{user: _user, token: oauth_response}} ->
         {:ok, provider} =
-          Integrations.save_provider(provider_name, conn.assigns.current_user.id, %{
-            name: provider_name,
-            status: :enabled,
-            token: oauth_response["access_token"],
-            expires_at: DateTime.add(DateTime.utc_now(), oauth_response["expires_in"], :second),
-            refresh_token: oauth_response["refresh_token"],
-            provider_uid: oauth_response["user_id"],
-            token_type: oauth_response["token_type"]
-          })
+          Integrations.save_provider(
+            provider_name,
+            conn.assigns.current_user.id,
+            build_provider_attrs(provider_name, oauth_response)
+          )
 
-        Integrations.enable_provider(provider)
+        Integrations.enqueue_sync_job(provider)
 
         conn
         |> Phoenix.Controller.redirect(to: "/")
@@ -64,8 +61,15 @@ defmodule MentatWeb.ProviderOAuthController do
     end
   end
 
-  defp config!(provider) do
-    Application.get_env(:mentat, :strategies)[provider] ||
-      raise "No provider configuration for #{provider}"
+  defp build_provider_attrs(provider_name, oauth_response) do
+    %{
+      name: provider_name,
+      status: :enabled,
+      token: oauth_response["access_token"],
+      expires_at: DateTime.add(DateTime.utc_now(), oauth_response["expires_in"], :second),
+      refresh_token: oauth_response["refresh_token"],
+      provider_uid: oauth_response["user_id"],
+      token_type: oauth_response["token_type"]
+    }
   end
 end

@@ -7,6 +7,7 @@ defmodule Mentat.Integrations do
 
   defdelegate save_provider(provider_name, user_id, attrs \\ %{}), to: Services.Provider
   defdelegate enable_provider(provider), to: Services.Provider
+  defdelegate enqueue_sync_job(provider), to: Services.Provider
 
   # TODO: refactor below
 
