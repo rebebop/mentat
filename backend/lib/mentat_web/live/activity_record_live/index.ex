@@ -2,7 +2,7 @@ defmodule MentatWeb.ActivityRecordLive.Index do
   use MentatWeb, :live_view
 
   alias Mentat.Activities
-  alias Mentat.Activities.ActivityRecord
+  alias Mentat.Activities.Schemas.ActivityRecord
 
   @impl true
   def mount(_params, _session, socket) do

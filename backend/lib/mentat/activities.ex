@@ -2,13 +2,12 @@ defmodule Mentat.Activities do
   import Ecto.Query, warn: false
   alias Mentat.Repo
 
-  alias Mentat.Activities.ActivityRecord
+  alias Mentat.Activities.Schemas.ActivityRecord
+  alias Mentat.Activities.Services
+  alias Mentat.Activities.Selectors
 
-  def save_activity_record(user_id, attrs) do
-    %ActivityRecord{user_id: user_id}
-    |> ActivityRecord.changeset(attrs)
-    |> Repo.insert()
-  end
+  defdelegate save_activity_record(user_id, attrs), to: Services.ActivityRecord
+  defdelegate get_activity_records_by_date_range(user_id, date_range, where_clause), to: Selectors.ActivityRecord
 
   def get_activity_records_by_date_range(user_id, provider_id, measuring_scale, date_range) do
     {start_date, end_date} = date_range

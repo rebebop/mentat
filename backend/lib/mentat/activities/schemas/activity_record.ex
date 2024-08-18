@@ -1,11 +1,11 @@
-defmodule Mentat.Activities.ActivityRecord do
+defmodule Mentat.Activities.Schemas.ActivityRecord do
   use Ecto.Schema
   import Ecto.Changeset
 
   alias Mentat.Integrations.Provider
   alias Mentat.Accounts.User
 
-  @required_fields [:start_time, :end_time, :value, :measuring_scale, :user_id, :provider_id]
+  @required_fields [:logged_at, :value, :attribute, :user_id, :provider_id]
   @optional_fields [:tags, :details]
 
   @primary_key {:id, :binary_id, autogenerate: true}
@@ -13,11 +13,10 @@ defmodule Mentat.Activities.ActivityRecord do
   schema "activity_records" do
     field :value, :decimal
     field :details, :map
-    field :start_time, :utc_datetime
-    field :end_time, :utc_datetime
+    field :logged_at, :utc_datetime
     field :tags, {:array, :string}
 
-    field :measuring_scale, Ecto.Enum,
+    field :attribute, Ecto.Enum,
       values: [
         work_min: 1,
         side_project_min: 2,
