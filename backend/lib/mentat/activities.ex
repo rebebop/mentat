@@ -8,6 +8,7 @@ defmodule Mentat.Activities do
 
   defdelegate save_activity_record(user_id, attrs), to: Services.ActivityRecord
   defdelegate get_activity_records_by_date_range(user_id, date_range, where_clause), to: Selectors.ActivityRecord
+  defdelegate save_or_update_activity_records(activities), to: Services.ActivityRecord
 
   def get_activity_records_by_date_range(user_id, provider_id, measuring_scale, date_range) do
     {start_date, end_date} = date_range

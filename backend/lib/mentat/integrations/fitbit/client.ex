@@ -4,72 +4,100 @@ defmodule Mentat.Integrations.Fitbit.Client do
   alias Mentat.Integrations.Fitbit.AuthStrategy
 
   def sync(user_id, provider_id) do
-    {:ok, end_date} = DateTime.new(Date.utc_today(), ~T[00:00:00])
-    start_date = DateTime.shift(end_date, day: -30)
+    end_date = DateTime.new!(Date.utc_today(), ~T[00:00:00])
 
-    # save_heartrate_variability(user_id, provider_id, start_date, end_date)
-    save_sleep(user_id, provider_id, start_date, end_date)
+    client_state = %{
+      user_id: user_id,
+      provider_id: provider_id,
+      end_date: end_date,
+      start_date: DateTime.shift(end_date, day: -30)
+    }
+
+    save_heartrate_variability(client_state)
+    # save_sleep(client_state)
   end
 
-  def save_heartrate_variability(user_id, provider_id, start_date, end_date) do
-    date_range_api_url("hrv", start_date, end_date)
-    |> AuthStrategy.api_request(user_id, :get)
+  def save_heartrate_variability(state) do
+    date_range_api_url("hrv", state.start_date, state.end_date)
+    |> AuthStrategy.api_request(state.user_id, :get)
     |> case do
       {:ok, response} ->
-        previous_records =
-          Activities.get_activity_records_by_date_range(
-            user_id,
-            provider_id,
-            :heartrate_variability,
-            {start_date, end_date},
-            :only_match_day
-          )
-
-        response.body
-        |> Map.get("hrv")
-        |> Enum.each(fn hrv ->
-          hrv_date_time = hrv["dateTime"]
-          hrv_value = hrv["value"]["dailyRmssd"]
-
-          existing_record? =
-            Enum.find(previous_records, fn record -> get_day_string(record.start_time) == hrv_date_time end)
-
-          if existing_record? do
-            Activities.update_activity_record(existing_record?, %{value: hrv_value})
-          else
-            hrv_date_time_obj = Date.from_iso8601!(hrv_date_time)
-
-            Activities.save_activity_record(user_id, %{
-              value: hrv_value,
-              start_time: DateTime.new!(hrv_date_time_obj, ~T[00:00:00]),
-              end_time: DateTime.new!(hrv_date_time_obj, ~T[23:59:59]),
-              measuring_scale: :heartrate_variability,
-              provider_id: provider_id
-            })
-          end
-        end)
+        get_values_from_response(response, "hrv")
+        |> process_response(state, :heartrate_variability, &get_in(&1, ["value", "dailyRmssd"]), "dateTime")
 
       {:error, _} ->
-        Logger.error("Could not save heartrate variability data from provider :fitbit for user:#{user_id}")
+        Logger.error("Could not save heartrate variability data from provider :fitbit for user:#{state.user_id}")
     end
   end
 
-  def save_sleep(user_id, provider_id, start_date, end_date) do
-    date_range_api_url("sleep", start_date, end_date)
-    |> AuthStrategy.api_request(user_id, :get, 1.2)
+  def save_sleep(state) do
+    date_range_api_url("sleep", state.start_date, state.end_date)
+    |> AuthStrategy.api_request(state.user_id, :get, 1.2)
     |> case do
       {:ok, response} ->
-        sleep_response = response.body |> Map.get("sleep")
-        save_sleep_min(user_id, provider_id, start_date, end_date, sleep_response)
-        save_sleep_deep_min(user_id, provider_id, start_date, end_date, sleep_response)
-        save_sleep_light_min(user_id, provider_id, start_date, end_date, sleep_response)
-        save_sleep_rem_min(user_id, provider_id, start_date, end_date, sleep_response)
-        save_sleep_awake_min(user_id, provider_id, start_date, end_date, sleep_response)
-        save_sleep_awakenings(user_id, provider_id, start_date, end_date, sleep_response)
+        sleep_response = get_values_from_response(response, "sleep")
+
+        save_sleep_min(sleep_response, state)
+        save_sleep_deep_min(sleep_response, state)
+        save_sleep_light_min(sleep_response, state)
+        save_sleep_rem_min(sleep_response, state)
+        save_sleep_awake_min(sleep_response, state)
+        save_sleep_awakenings(sleep_response, state)
 
       {:error, _} ->
-        Logger.error("Could not save sleep data from provider fitbit for user:#{user_id}")
+        Logger.error("Could not save sleep data from provider fitbit for user:#{state.user_id}")
     end
+  end
+
+  defp save_sleep_min(sleep_response, state) do
+    value_path = &get_in(&1, ["duration"])
+    value_fn = &(&1 / 60000)
+
+    process_response(sleep_response, state, :sleep_min, value_path, "dateOfSleep", value_fn)
+  end
+
+  defp save_sleep_deep_min(sleep_response, state) do
+    value_path = &get_in(&1, ["levels", "summary", "deep", "minutes"])
+
+    process_response(sleep_response, state, :sleep_deep_min, value_path, "dateOfSleep")
+  end
+
+  defp save_sleep_light_min(sleep_response, state) do
+    value_path = &get_in(&1, ["levels", "summary", "light", "minutes"])
+
+    process_response(sleep_response, state, :sleep_light_min, value_path, "dateOfSleep")
+  end
+
+  defp save_sleep_rem_min(sleep_response, state) do
+    value_path = &get_in(&1, ["levels", "summary", "rem", "minutes"])
+
+    process_response(sleep_response, state, :sleep_rem_min, value_path, "dateOfSleep")
+  end
+
+  defp save_sleep_awake_min(sleep_response, state) do
+    value_path =
+      &(get_in(&1, ["levels", "summary", "awake", "minutes"]) || get_in(&1, ["levels", "summary", "wake", "minutes"]))
+
+    process_response(sleep_response, state, :sleep_awake_min, value_path, "dateOfSleep")
+  end
+
+  defp save_sleep_awakenings(sleep_response, state) do
+    value_path =
+      &(get_in(&1, ["levels", "summary", "awake", "count"]) || get_in(&1, ["levels", "summary", "wake", "count"]))
+
+    process_response(sleep_response, state, :sleep_awakenings, value_path, "dateOfSleep")
+  end
+
+  defp process_response(sleep_response, state, attribute, value_path, date_path, value_fn \\ & &1) do
+    sleep_response
+    |> Enum.reduce([], fn response, records ->
+      date_time = response[date_path]
+      value = value_path.(response) |> value_fn.()
+
+      [build_new_record(state, date_time, value, attribute) | records]
+    end)
+    |> filter_previous_records(state, attribute)
+    |> Activities.save_or_update_activity_records()
   end
 
   defp get_day_string(datetime), do: Calendar.strftime(datetime, "%Y-%m-%d")
@@ -77,217 +105,37 @@ defmodule Mentat.Integrations.Fitbit.Client do
   defp date_range_api_url(entity, start_date, end_date),
     do: "#{entity}/date/#{get_day_string(start_date)}/#{get_day_string(end_date)}.json"
 
-  defp save_sleep_min(user_id, provider_id, start_date, end_date, sleep_response) do
-    previous_records =
-      Activities.get_activity_records_by_date_range(
-        user_id,
-        provider_id,
-        :sleep_min,
-        {start_date, end_date},
-        :only_match_day
-      )
+  defp get_previous_records(state, attribute) do
+    where_clause = [provider_id: state.provider_id, attribute: attribute]
 
-    sleep_response
-    |> Enum.each(fn sleep ->
-      date_time = sleep["dateOfSleep"]
-      # milliseconds to minutes
-      duration = sleep["duration"] / 60000
-
-      record_exists? = Enum.find(previous_records, fn record -> get_day_string(record.start_time) == date_time end)
-
-      if record_exists? do
-        Activities.update_activity_record(record_exists?, %{value: duration})
-      else
-        sleep_date_time_obj = Date.from_iso8601!(date_time)
-
-        Activities.save_activity_record(user_id, %{
-          value: duration,
-          start_time: DateTime.new!(sleep_date_time_obj, ~T[00:00:00]),
-          end_time: DateTime.new!(sleep_date_time_obj, ~T[23:59:59]),
-          measuring_scale: :sleep_min,
-          provider_id: provider_id
-        })
-      end
-    end)
+    Activities.get_activity_records_by_date_range(
+      state.user_id,
+      {state.start_date, state.end_date},
+      where_clause
+    )
   end
 
-  defp save_sleep_deep_min(user_id, provider_id, start_date, end_date, sleep_response) do
-    previous_records =
-      Activities.get_activity_records_by_date_range(
-        user_id,
-        provider_id,
-        :sleep_deep_min,
-        {start_date, end_date},
-        :only_match_day
-      )
+  defp get_values_from_response(response, response_key), do: response.body |> Map.get(response_key)
 
-    sleep_response
-    |> Enum.each(fn sleep ->
-      date_time = sleep["dateOfSleep"]
-      deep_sleep_duration = get_in(sleep, ["levels", "summary", "deep", "minutes"])
-
-      if deep_sleep_duration do
-        record_exists? = Enum.find(previous_records, fn record -> get_day_string(record.start_time) == date_time end)
-
-        if record_exists? do
-          Activities.update_activity_record(record_exists?, %{value: deep_sleep_duration})
-        else
-          date_time_obj = Date.from_iso8601!(date_time)
-
-          Activities.save_activity_record(user_id, %{
-            value: deep_sleep_duration,
-            start_time: DateTime.new!(date_time_obj, ~T[00:00:00]),
-            end_time: DateTime.new!(date_time_obj, ~T[23:59:59]),
-            measuring_scale: :sleep_deep_min,
-            provider_id: provider_id
-          })
-        end
-      end
-    end)
+  defp build_new_record(state, date_time, value, attribute) do
+    %{
+      user_id: state.user_id,
+      value: value,
+      logged_at: DateTime.new!(Date.from_iso8601!(date_time), ~T[00:00:00]),
+      attribute: attribute,
+      provider_id: state.provider_id
+    }
   end
 
-  defp save_sleep_light_min(user_id, provider_id, start_date, end_date, sleep_response) do
-    previous_records =
-      Activities.get_activity_records_by_date_range(
-        user_id,
-        provider_id,
-        :sleep_light_min,
-        {start_date, end_date},
-        :only_match_day
-      )
-
-    sleep_response
-    |> Enum.each(fn sleep ->
-      date_time = sleep["dateOfSleep"]
-      duration = get_in(sleep, ["levels", "summary", "light", "minutes"])
-
-      if duration do
-        record_exists? = Enum.find(previous_records, fn record -> get_day_string(record.start_time) == date_time end)
-
-        if record_exists? do
-          Activities.update_activity_record(record_exists?, %{value: duration})
-        else
-          date_time_obj = Date.from_iso8601!(date_time)
-
-          Activities.save_activity_record(user_id, %{
-            value: duration,
-            start_time: DateTime.new!(date_time_obj, ~T[00:00:00]),
-            end_time: DateTime.new!(date_time_obj, ~T[23:59:59]),
-            measuring_scale: :sleep_light_min,
-            provider_id: provider_id
-          })
-        end
-      end
-    end)
+  defp filter_previous_records(records, state, attribute) do
+    previous_records = get_previous_records(state, attribute)
+    filter_previous_records(records, state, attribute, previous_records)
   end
 
-  defp save_sleep_rem_min(user_id, provider_id, start_date, end_date, sleep_response) do
-    previous_records =
-      Activities.get_activity_records_by_date_range(
-        user_id,
-        provider_id,
-        :sleep_rem_min,
-        {start_date, end_date},
-        :only_match_day
-      )
+  defp filter_previous_records(records, _state, _attribute, []), do: records
 
-    sleep_response
-    |> Enum.each(fn sleep ->
-      date_time = sleep["dateOfSleep"]
-      duration = get_in(sleep, ["levels", "summary", "rem", "minutes"])
-
-      if duration do
-        record_exists? = Enum.find(previous_records, fn record -> get_day_string(record.start_time) == date_time end)
-
-        if record_exists? do
-          Activities.update_activity_record(record_exists?, %{value: duration})
-        else
-          date_time_obj = Date.from_iso8601!(date_time)
-
-          Activities.save_activity_record(user_id, %{
-            value: duration,
-            start_time: DateTime.new!(date_time_obj, ~T[00:00:00]),
-            end_time: DateTime.new!(date_time_obj, ~T[23:59:59]),
-            measuring_scale: :sleep_rem_min,
-            provider_id: provider_id
-          })
-        end
-      end
-    end)
-  end
-
-  defp save_sleep_awake_min(user_id, provider_id, start_date, end_date, sleep_response) do
-    previous_records =
-      Activities.get_activity_records_by_date_range(
-        user_id,
-        provider_id,
-        :sleep_awake_min,
-        {start_date, end_date},
-        :only_match_day
-      )
-
-    sleep_response
-    |> Enum.each(fn sleep ->
-      date_time = sleep["dateOfSleep"]
-
-      duration =
-        get_in(sleep, ["levels", "summary", "awake", "minutes"]) ||
-          get_in(sleep, ["levels", "summary", "wake", "minutes"])
-
-      if duration do
-        record_exists? = Enum.find(previous_records, fn record -> get_day_string(record.start_time) == date_time end)
-
-        if record_exists? do
-          Activities.update_activity_record(record_exists?, %{value: duration})
-        else
-          date_time_obj = Date.from_iso8601!(date_time)
-
-          Activities.save_activity_record(user_id, %{
-            value: duration,
-            start_time: DateTime.new!(date_time_obj, ~T[00:00:00]),
-            end_time: DateTime.new!(date_time_obj, ~T[23:59:59]),
-            measuring_scale: :sleep_awake_min,
-            provider_id: provider_id
-          })
-        end
-      end
-    end)
-  end
-
-  defp save_sleep_awakenings(user_id, provider_id, start_date, end_date, sleep_response) do
-    previous_records =
-      Activities.get_activity_records_by_date_range(
-        user_id,
-        provider_id,
-        :sleep_awakenings,
-        {start_date, end_date},
-        :only_match_day
-      )
-
-    sleep_response
-    |> Enum.each(fn sleep ->
-      date_time = sleep["dateOfSleep"]
-
-      count =
-        get_in(sleep, ["levels", "summary", "awake", "count"]) || get_in(sleep, ["levels", "summary", "wake", "count"])
-
-      if count do
-        record_exists? = Enum.find(previous_records, fn record -> get_day_string(record.start_time) == date_time end)
-
-        if record_exists? do
-          Activities.update_activity_record(record_exists?, %{value: count})
-        else
-          date_time_obj = Date.from_iso8601!(date_time)
-
-          Activities.save_activity_record(user_id, %{
-            value: count,
-            start_time: DateTime.new!(date_time_obj, ~T[00:00:00]),
-            end_time: DateTime.new!(date_time_obj, ~T[23:59:59]),
-            measuring_scale: :sleep_awakenings,
-            provider_id: provider_id
-          })
-        end
-      end
-    end)
+  defp filter_previous_records(records, _state, _attribute, previous_records) do
+    records
+    |> Enum.filter(fn record -> !Enum.find(previous_records, &(&1.logged_at == record.logged_at)) end)
   end
 end

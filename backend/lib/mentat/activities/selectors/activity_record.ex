@@ -1,7 +1,8 @@
 defmodule Mentat.Activities.Selectors.ActivityRecord do
   import Ecto.Query, warn: false
 
-  alias Mentat.Activities.ActivityRecord
+  alias Mentat.Repo
+  alias Mentat.Activities.Schemas.ActivityRecord
 
   def get_activity_records_by_date_range(user_id, date_range, where_clause) do
     {start_date, end_date} = date_range
