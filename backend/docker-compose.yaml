@@ -18,5 +18,13 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+  mentat_grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - 127.0.0.1:3000:3000
+    volumes:
+      - mentat_grafana_storage:/var/lib/grafana
 volumes:
   mentat_postgresdb:
+  mentat_grafana_storage: {}

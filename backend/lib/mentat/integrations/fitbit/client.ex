@@ -1,6 +1,7 @@
 defmodule Mentat.Integrations.Fitbit.Client do
   require Logger
   alias Mentat.Activities
+  alias Mentat.Integrations.Fitbit.FitbitActivities
   alias Mentat.Integrations.Fitbit.AuthStrategy
 
   def sync(user_id, provider_id) do
@@ -14,7 +15,29 @@ defmodule Mentat.Integrations.Fitbit.Client do
     }
 
     save_heartrate_variability(client_state)
-    # save_sleep(client_state)
+    save_sleep(client_state)
+    save_workout(client_state)
+  end
+
+  def save_workout(state) do
+    value_fn = &(&1 / 60000)
+    # TODO: use the actviity list to get all the ids that corresponds to workouts and then filter for them
+
+    "activities/list.json?afterDate=#{get_day_string(state.start_date)}&offset=0&limit=50&sort=asc"
+    |> AuthStrategy.api_request(state.user_id, :get)
+    |> case do
+      {:ok, response} ->
+        workout_ids = FitbitActivities.get_all_workout_ids()
+
+        get_values_from_response(response, "activities")
+        |> Enum.filter(fn a -> a["activityTypeId"] in workout_ids end)
+        |> process_response(state, :workout_min, &get_in(&1, ["activeDuration"]), "startTime", value_fn)
+
+      {:error, err} ->
+        Logger.error(
+          "Could not save activity log data from provider :fitbit for user:#{state.user_id}\n #{inspect(err, pretty: true)}"
+        )
+    end
   end
 
   def save_heartrate_variability(state) do
@@ -88,8 +111,8 @@ defmodule Mentat.Integrations.Fitbit.Client do
     process_response(sleep_response, state, :sleep_awakenings, value_path, "dateOfSleep")
   end
 
-  defp process_response(sleep_response, state, attribute, value_path, date_path, value_fn \\ & &1) do
-    sleep_response
+  defp process_response(response, state, attribute, value_path, date_path, value_fn \\ & &1) do
+    response
     |> Enum.reduce([], fn response, records ->
       date_time = response[date_path]
       value = value_path.(response) |> value_fn.()
@@ -121,10 +144,17 @@ defmodule Mentat.Integrations.Fitbit.Client do
     %{
       user_id: state.user_id,
       value: value,
-      logged_at: DateTime.new!(Date.from_iso8601!(date_time), ~T[00:00:00]),
+      logged_at: parse_fitbit_date_time(date_time),
       attribute: attribute,
       provider_id: state.provider_id
     }
+  end
+
+  defp parse_fitbit_date_time(date_str) do
+    case DateTime.from_iso8601(date_str) do
+      {:ok, date_time, _} -> date_time |> DateTime.truncate(:second)
+      {:error, _} -> DateTime.new!(Date.from_iso8601!(date_str), ~T[00:00:00])
+    end
   end
 
   defp filter_previous_records(records, state, attribute) do
