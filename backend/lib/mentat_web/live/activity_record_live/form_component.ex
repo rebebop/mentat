@@ -13,15 +13,8 @@ defmodule MentatWeb.ActivityRecordLive.FormComponent do
         <:subtitle>Use this form to manage activity_record records in your database.</:subtitle>
       </.header>
 
-      <.simple_form
-        for={@form}
-        id="activity_record-form"
-        phx-target={@myself}
-        phx-change="validate"
-        phx-submit="save"
-      >
-        <.input field={@form[:start_time]} type="datetime-local" label="Start time" />
-        <.input field={@form[:end_time]} type="datetime-local" label="End time" />
+      <.simple_form for={@form} id="activity_record-form" phx-target={@myself} phx-change="validate" phx-submit="save">
+        <.input field={@form[:logged_at]} type="datetime-local" label="Logged At" />
         <.input field={@form[:value]} type="number" label="Value" step="any" />
         <%!-- <.input --%>
         <%!--   field={@form[:tags]} --%>
@@ -31,18 +24,18 @@ defmodule MentatWeb.ActivityRecordLive.FormComponent do
         <%!--   options={[{"Option 1", "option1"}, {"Option 2", "option2"}]} --%>
         <%!-- /> --%>
         <.input
-          field={@form[:measuring_scale]}
+          field={@form[:attribute]}
           type="select"
           label="Measuring scale"
           prompt="Choose a value"
-          options={Ecto.Enum.values(Mentat.Activities.ActivityRecord, :measuring_scale)}
+          options={Ecto.Enum.values(Mentat.Activities.Schemas.ActivityRecord, :attribute)}
         />
         <.input
           field={@form[:provider_id]}
           type="select"
           label="Provider"
           prompt="Choose a value"
-          options={Integrations.list_providers() |> Enum.map(&{&1.label, &1.id})}
+          options={Integrations.list_providers() |> Enum.map(&{&1.name, &1.id})}
         />
         <:actions>
           <.button phx-disable-with="Saving...">Save Activity record</.button>

@@ -10,17 +10,14 @@
 <.table
   id="activity_records"
   rows={@streams.activity_records}
-  row_click={
-    fn {_id, activity_record} -> JS.navigate(~p"/activity_records/#{activity_record}") end
-  }
+  row_click={fn {_id, activity_record} -> JS.navigate(~p"/activity_records/#{activity_record}") end}
 >
-  <:col :let={{_id, activity_record}} label="Start time"><%= activity_record.start_time %></:col>
-  <:col :let={{_id, activity_record}} label="End time"><%= activity_record.end_time %></:col>
+  <:col :let={{_id, activity_record}} label="Logged At"><%= activity_record.logged_at %></:col>
   <:col :let={{_id, activity_record}} label="Value"><%= activity_record.value %></:col>
   <:col :let={{_id, activity_record}} label="Details"><%= activity_record.details %></:col>
   <:col :let={{_id, activity_record}} label="Tags"><%= activity_record.tags %></:col>
-  <:col :let={{_id, activity_record}} label="Measuring scale">
-    <%= activity_record.measuring_scale %>
+  <:col :let={{_id, activity_record}} label="Attribute">
+    <%= activity_record.attribute %>
   </:col>
   <:action :let={{_id, activity_record}}>
     <div class="sr-only">
@@ -38,12 +35,7 @@
   </:action>
 </.table>
 
-<.modal
-  :if={@live_action in [:new, :edit]}
-  id="activity_record-modal"
-  show
-  on_cancel={JS.patch(~p"/activity_records")}
->
+<.modal :if={@live_action in [:new, :edit]} id="activity_record-modal" show on_cancel={JS.patch(~p"/activity_records")}>
   <.live_component
     module={MentatWeb.ActivityRecordLive.FormComponent}
     id={@activity_record.id || :new}
