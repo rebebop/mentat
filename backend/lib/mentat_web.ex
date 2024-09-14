@@ -43,7 +43,7 @@ defmodule MentatWeb do
         layouts: [html: MentatWeb.Layouts]
 
       import Plug.Conn
-      import MentatWeb.Gettext
+      use Gettext, backend: MentatWeb.Gettext
 
       unquote(verified_routes())
     end
@@ -85,7 +85,7 @@ defmodule MentatWeb do
       import Phoenix.HTML
       # Core UI components and translation
       import MentatWeb.CoreComponents
-      import MentatWeb.Gettext
+      use Gettext, backend: MentatWeb.Gettext
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS

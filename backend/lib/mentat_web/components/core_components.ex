@@ -17,7 +17,7 @@ defmodule MentatWeb.CoreComponents do
   use Phoenix.Component
 
   alias Phoenix.LiveView.JS
-  import MentatWeb.Gettext
+  use Gettext, backend: MentatWeb.Gettext
 
   @doc """
   Renders a modal.
